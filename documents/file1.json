@@ -1,0 +1,7 @@
+path: /json
+method: GET
+template: true
+---
+{
+    "hello": "world"
+}

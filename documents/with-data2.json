@@ -1,0 +1,8 @@
+path: /json?data=*
+method: GET
+template: true
+---
+{
+    "hello": "world",
+    "with": "{{ .data }}"
+}
