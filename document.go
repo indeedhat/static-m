@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
+	"mime"
 	"net/url"
+	"path"
 	"slices"
 	"strings"
 
@@ -17,18 +19,25 @@ const (
 	ScoreQueryWildcard   = 1
 )
 
+type ResponseConfig struct {
+	Status  int               `yaml:"status"`
+	Headers map[string]string `yaml:"headers"`
+}
+
 type Document struct {
 	// Header values
-	Path       string `yaml:"path"`
-	Method     string `yaml:"method"`
-	IsTemplate bool   `yaml:"template"`
+	Mime       string          `yaml:"mime"`
+	Path       string          `yaml:"path"`
+	Method     string          `yaml:"method"`
+	IsTemplate bool            `yaml:"template"`
+	Response   *ResponseConfig `yaml:"response"`
 
 	// internal state
 	url  *url.URL
 	body []byte
 }
 
-func NewDocument(data []byte) (*Document, error) {
+func NewDocument(filePath string, data []byte) (*Document, error) {
 	sep := []byte("\n---\n")
 	idx := bytes.Index(data, sep)
 	if idx == -1 {
@@ -42,6 +51,10 @@ func NewDocument(data []byte) (*Document, error) {
 	var err error
 	if err = yaml.Unmarshal(headerData, &d); err != nil {
 		return nil, err
+	}
+
+	if d.Mime == "" {
+		d.Mime = mime.TypeByExtension(path.Ext(filePath))
 	}
 
 	if d.Path == "" {
