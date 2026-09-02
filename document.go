@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"mime"
 	"net/url"
+	"os"
 	"path"
 	"slices"
 	"strings"
@@ -35,9 +36,10 @@ type Document struct {
 	// internal state
 	url  *url.URL
 	body []byte
+	info os.FileInfo
 }
 
-func NewDocument(filePath string, data []byte) (*Document, error) {
+func NewDocument(filePath string, data []byte, info os.FileInfo) (*Document, error) {
 	sep := []byte("\n---\n")
 	idx := bytes.Index(data, sep)
 	if idx == -1 {
@@ -61,9 +63,10 @@ func NewDocument(filePath string, data []byte) (*Document, error) {
 		return nil, errors.New("invalid header, must have path")
 	}
 
+	d.info = info
 	d.body = bodyData
-	d.url, err = url.Parse(d.Path)
-	if err != nil {
+
+	if d.url, err = url.Parse(d.Path); err != nil {
 		return nil, err
 	}
 

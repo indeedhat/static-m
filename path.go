@@ -21,3 +21,7 @@ func parseWildcard(s string) (is, multipart bool, name string) {
 
 	return false, false, ""
 }
+
+func validatePath() error {
+	panic("not implemented")
+}

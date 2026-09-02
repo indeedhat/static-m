@@ -1,6 +1,25 @@
 # Static M
 Mock services using static files
 
+## Usage
+```console
+StaticM
+Serve static files based on wildcard paths for mocking external servers
+
+Options:
+  -port string
+    	The port to listen on (default "8080")
+  -root string
+    	The directory to search for documents within. (default "./documents/")
+
+Flags:
+  -watch
+    	Watch the directory for file changes.
+    	This will parse changes on each request, its wasteful but adequate for a tool like this.
+  -v
+    	Print verbose output
+```
+
 ## File headers
 ```
 # Only the path field is required, all other fields are optional
@@ -34,8 +53,7 @@ Query wild cards are named by default, they will use the name of the query param
 
 ## TODO:
 - [ ] validate paths in file headers before setup
-- [ ] watch documents directory for changes
+- [x] watch documents directory for changes
 - [x] better logging
 - [x] auto detect mime types for response header
-- [ ] option to define required headers (maybe)
 - [x] allow defining response headers

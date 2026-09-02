@@ -3,5 +3,5 @@ method: GET
 template: true
 ---
 {
-    "hello": "world"
+    "Hello": "World!"
 }

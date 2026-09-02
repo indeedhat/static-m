@@ -1,75 +1,88 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log/slog"
 	"math"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
-const DocumentDir = "./documents/"
+const (
+	DefaultDocumentDir = "./documents/"
+	DefaultPort        = "8080"
+	Usage              = `StaticM
+Serve static files based on wildcard paths for mocking external servers
 
-var documents map[string]Document
+Options:
+  -port string
+    	The port to listen on (default "8080")
+  -root string
+    	The directory to search for documents within. (default "./documents/")
+
+Flags:
+  -watch
+    	Watch the directory for file changes.
+    	This will parse changes on each request, its wasteful but adequate for a tool like this.
+  -v
+    	Print verbose output
+`
+)
+
+var (
+	root    string
+	port    string
+	watch   bool
+	verbose bool
+)
 
 func main() {
+	flag.StringVar(&root, "root", DefaultDocumentDir, "The directory to search for documents within.")
+	flag.StringVar(&port, "port", DefaultPort, "The port to listen on")
+	flag.BoolVar(&watch, "watch", false, "Watch the directory for file changes.\nThis will parse changes on each request, its wasteful but adequate for a tool like this.")
+	flag.BoolVar(&verbose, "v", false, "Print verbose output")
+	flag.Usage = func() {
+		fmt.Print(Usage)
+	}
+
+	flag.Parse()
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	documents = make(map[string]Document)
-	err := parseDocuments(DocumentDir)
-	if err != nil {
+	registry := NewRegistry(logger, root, watch)
+	if err := registry.Parse(true); err != nil {
 		logger.Error("failed to load docs", "error", err)
 		os.Exit(1)
 	}
 
-	http.HandleFunc("/", buildHandler(logger))
-	http.ListenAndServe(":8080", nil)
+	logger.Info("server starting", "port", port)
+	http.HandleFunc("/", buildHandler(logger, registry))
+	http.ListenAndServe(":"+port, nil)
 }
 
-func parseDocuments(root string) error {
-	return filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
-		if _, found := documents[path]; found {
-			return nil
-		}
-
-		if err != nil {
-			return err
-		}
-
-		if entry.IsDir() {
-			return nil
-		}
-
-		contents, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		d, err := NewDocument(path, contents)
-		if err != nil {
-			return err
-		}
-
-		documents[path] = *d
-		return nil
-	})
-}
-
-func buildHandler(logger *slog.Logger) http.HandlerFunc {
+func buildHandler(logger *slog.Logger, registry *Registry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if err := registry.Refresh(verbose); err != nil {
+			logger.Error("failed to refresh registry", "error", err)
+		}
+
 		logger.Info("processing request", "method", r.Method, "url", r.URL.String())
 
 		var doc *Document
 		var args map[string]string
 		score := uint(math.MaxUint)
 
-		for _, subject := range documents {
+		for _, subject := range registry.Docs {
 			match, s, d := subject.Match(r.URL, r.Method)
 			if !match {
 				continue
 			}
 
-			logger.Info("found match", "score", s, "pattern", subject.url.String())
+			if verbose {
+				logger.Info("found match", "score", s, "pattern", subject.url.String())
+			}
+
 			if s >= score {
 				continue
 			}
@@ -96,7 +109,10 @@ func buildHandler(logger *slog.Logger) http.HandlerFunc {
 			w.Header().Add("Content-Type", doc.Mime)
 		}
 
-		logger.Info("rendering output", "pattern", doc.url.String(), "args", args, "score", score)
+		if verbose {
+			logger.Info("rendering output", "pattern", doc.url.String(), "args", args, "score", score)
+		}
+
 		if doc.Response != nil {
 			for k, v := range doc.Response.Headers {
 				w.Header().Add(k, v)
