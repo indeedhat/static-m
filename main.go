@@ -3,16 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"log/slog"
 	"math"
 	"net/http"
 	"os"
+
+	"gorm.io/gorm/logger"
 )
 
 const (
-	DefaultDocumentDir = "./documents/"
-	DefaultPort        = "8080"
-	Usage              = `StaticM
+	DefaultPort = "8080"
+	Usage       = `StaticM
 Serve static files based on wildcard paths for mocking external servers
 
 Options:
@@ -38,7 +40,6 @@ var (
 )
 
 func main() {
-	flag.StringVar(&root, "root", DefaultDocumentDir, "The directory to search for documents within.")
 	flag.StringVar(&port, "port", DefaultPort, "The port to listen on")
 	flag.BoolVar(&watch, "watch", false, "Watch the directory for file changes.\nThis will parse changes on each request, its wasteful but adequate for a tool like this.")
 	flag.BoolVar(&verbose, "v", false, "Print verbose output")
@@ -47,10 +48,15 @@ func main() {
 	}
 
 	flag.Parse()
+	if len(flag.Args()) == 0 {
+		fmt.Fprintln(os.Stderr, "Please provide a directory to serve documents from")
+		fmt.Fprint(os.Stderr, Usage)
+		os.Exit(1)
+	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	registry := NewRegistry(logger, root, watch)
+	registry := NewRegistry(logger, flag.Arg(0), watch)
 	if err := registry.Parse(true); err != nil {
 		logger.Error("failed to load docs", "error", err)
 		os.Exit(1)

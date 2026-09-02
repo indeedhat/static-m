@@ -6,6 +6,9 @@ Mock services using static files
 StaticM
 Serve static files based on wildcard paths for mocking external servers
 
+Usage:
+  ./static-m [document_directory]
+
 Options:
   -port string
     	The port to listen on (default "8080")
@@ -21,17 +24,21 @@ Flags:
 ```
 
 ## File headers
-```
+```yaml
 # Only the path field is required, all other fields are optional
 
-path: /json    # the path to match against
-method: GET    # the http method to match against (blank/unset = any)
+# the path to match against
+path: /json
+# the http method to match against (blank/unset = any)
+method: GET
 # if the file is a go http/template file or raw text
 # when set to true you will have access to named wildcard values from inside the template
 template: true
-mime: application/json # the mime type to be returned, if not set this will be auto detected from the file extension
+# the mime type to be returned, if not set this will be auto detected from the file extension
+mime: application/json
 response:
-    code: 200 # overwrite the default respnose code
+    # overwrite the default respnose code
+    code: 200
     # map of headers to be returned with the response
     headers:
         x-some-header: Some Value
@@ -44,7 +51,7 @@ response:
 - **`**`**: greedy path segment (can match one or more path segments)
 - **`**:[name]`**: greedy path segment with value capture
 
-## Query String
+### Query String
 Query wild cards are named by default, they will use the name of the query param itself
 - **`*`**: single value
 - **`*:[name]`**: single value with name override
@@ -53,7 +60,3 @@ Query wild cards are named by default, they will use the name of the query param
 
 ## TODO:
 - [ ] validate paths in file headers before setup
-- [x] watch documents directory for changes
-- [x] better logging
-- [x] auto detect mime types for response header
-- [x] allow defining response headers
