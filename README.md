@@ -60,7 +60,7 @@ response:
 Query wild cards are named by default, they will use the name of the query param itself
 - **`*`**: single value
 - **`*:[name]`**: single value with name override
-- **`**`**: greedy, this will match one or more values (`?duplicate_key=one&duplicate_key=two` will produce the string `one, two`)
+- **`**`**: greedy, this will match one or more values (`?duplicate_key=one&duplicate_key=two` will produce `[]string{ "one", "two" }`)
 - **`**:[name]`**: greedy with name override
 
 ## Template Functions
