@@ -1,6 +1,11 @@
 # Static M
 Mock services using static files
 
+## Install
+```console
+go install github.com/indeedhat/static-m@latest
+```
+
 ## Usage
 ```console
 StaticM
