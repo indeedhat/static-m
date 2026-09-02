@@ -20,6 +20,10 @@ const (
 	ScoreQueryWildcard   = 1
 )
 
+var templateFuncs = template.FuncMap{
+	"last_idx": func(list []string) int { return len(list) - 1 },
+}
+
 type ResponseConfig struct {
 	Status  int               `yaml:"status"`
 	Headers map[string]string `yaml:"headers"`
@@ -73,12 +77,12 @@ func NewDocument(filePath string, data []byte, info os.FileInfo) (*Document, err
 	return &d, nil
 }
 
-func (d Document) Render(args map[string]string) ([]byte, error) {
+func (d Document) Render(args map[string]any) ([]byte, error) {
 	if !d.IsTemplate {
 		return d.body, nil
 	}
 
-	t, err := template.New(d.Path).Parse(string(d.body))
+	t, err := template.New(d.Path).Funcs(templateFuncs).Parse(string(d.body))
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +96,7 @@ func (d Document) Render(args map[string]string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (d Document) Match(u *url.URL, method string) (match bool, score uint, data map[string]string) {
+func (d Document) Match(u *url.URL, method string) (match bool, score uint, data map[string]any) {
 	if d.Method != "" && d.Method != method {
 		return false, 0, nil
 	}
@@ -108,7 +112,7 @@ func (d Document) Match(u *url.URL, method string) (match bool, score uint, data
 		return false, 0, nil
 	}
 
-	data = make(map[string]string)
+	data = make(map[string]any)
 
 	pMatch, pScore := d.matchPath(docPath, subjectPath, data)
 	if !pMatch {
@@ -123,7 +127,7 @@ func (d Document) Match(u *url.URL, method string) (match bool, score uint, data
 	return true, pScore + qScore, data
 }
 
-func (d Document) matchPath(doc, subject []string, data map[string]string) (math bool, score uint) {
+func (d Document) matchPath(doc, subject []string, data map[string]any) (math bool, score uint) {
 	if len(doc) == 0 {
 		if len(subject) == 0 {
 			return true, 0
@@ -172,7 +176,12 @@ func (d Document) matchPath(doc, subject []string, data map[string]string) (math
 			continue
 		}
 
-		data[name] += "/" + part
+		if v, found := data[name]; found {
+			data[name] = v.(string) + "/" + part
+		} else {
+			data[name] = "/" + part
+		}
+
 		if i == len(subject)-1 {
 			curI++
 		}
@@ -185,7 +194,7 @@ func (d Document) matchPath(doc, subject []string, data map[string]string) (math
 	return true, score
 }
 
-func (d Document) matchQuery(doc, subject url.Values, data map[string]string) (math bool, score uint) {
+func (d Document) matchQuery(doc, subject url.Values, data map[string]any) (math bool, score uint) {
 	for k, v := range doc {
 		if !subject.Has(k) {
 			return false, 0
@@ -198,7 +207,7 @@ func (d Document) matchQuery(doc, subject url.Values, data map[string]string) (m
 			name = k
 		}
 
-		if wild {
+		if wild && !greedy {
 			if len(subs) > 1 {
 				return false, 0
 			}
@@ -210,7 +219,7 @@ func (d Document) matchQuery(doc, subject url.Values, data map[string]string) (m
 
 		if greedy {
 			score += uint(ScoreQueryWildcard * len(subs))
-			data[name] = strings.Join(subs, ", ")
+			data[name] = subs
 			continue
 		}
 

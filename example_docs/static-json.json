@@ -1,6 +1,7 @@
 path: /json
 method: GET
 template: true
+mime: application/json
 ---
 {
     "Hello": "World!"

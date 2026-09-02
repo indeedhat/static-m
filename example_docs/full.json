@@ -1,0 +1,20 @@
+path: /json/*:path?string=*&list=**:list_values
+method: GET
+template: true
+mime: application/json
+response:
+    code: 200
+    headers:
+        x-some-header: Some Value
+---
+{
+    "path": "{{ .path }}",
+    "query": {
+        "string": "{{ .string }}",
+        "list": [
+            {{- range $i, $v := .list_values }}
+            "{{ $v }}"{{ if ne $i (last_idx $.list_values) }},{{ end }}
+            {{- end }}
+        ]
+    }
+}

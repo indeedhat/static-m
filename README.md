@@ -63,5 +63,11 @@ Query wild cards are named by default, they will use the name of the query param
 - **`**`**: greedy, this will match one or more values (`?duplicate_key=one&duplicate_key=two` will produce the string `one, two`)
 - **`**:[name]`**: greedy with name override
 
+## Template Functions
+```go
+// last_idx returns the last index of the list
+last_idx(list []string) int
+```
+
 ## TODO:
 - [ ] validate paths in file headers before setup

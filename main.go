@@ -3,13 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"log/slog"
 	"math"
 	"net/http"
 	"os"
-
-	"gorm.io/gorm/logger"
 )
 
 const (
@@ -76,7 +73,7 @@ func buildHandler(logger *slog.Logger, registry *Registry) http.HandlerFunc {
 		logger.Info("processing request", "method", r.Method, "url", r.URL.String())
 
 		var doc *Document
-		var args map[string]string
+		var args map[string]any
 		score := uint(math.MaxUint)
 
 		for _, subject := range registry.Docs {
